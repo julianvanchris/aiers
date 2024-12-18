@@ -24,60 +24,59 @@ def main():
         <style>
         /* Main Container */
         .main {
-            background-color: #f6f4f1; /* Soft White Background */
-            color: #000000; /* Black Text */
+            background-color: #2e3350; /* Deep Purple */
+            color: #ffffff; /* White Text */
             padding: 10px;
         }
 
         /* Global Styles */
         .stApp {
-            background-color: #f6f4f1; /* Soft White Background */
+            background-color: #2e3350; /* Deep Purple */
         }
         h1, h2, h3, h4, h5, h6 {
-            color: #1f3969; /* Deep Blue */
+            color: #f7b632; /* Yellow */
         }
-
         p, div, .markdown-text-container {
-            font-family: 'Helvetica', sans-serif;
-            color: #000000; /* Black Text */
+            font-family: 'Arial', sans-serif;
+            color: #ffffff; /* White Text */
         }
 
         /* Sidebar Styling */
         .css-1d391kg {
-            background-color: #1f3969 !important; /* Deep Blue */
+            background-color: #5a87bb !important; /* Blue */
         }
         .css-1d391kg h2 {
-            color: #fcfeff; /* Soft White */
+            color: #ffffff; /* White */
         }
         .css-1d391kg .st-radio-label {
-            color: #fcfeff !important; /* Soft White */
+            color: #ffffff !important; /* White */
         }
 
         /* Button Styling */
         .custom-button {
-        background-color: #cb503a; /* Red-Orange */
-        color: #fcfeff; /* Soft White Font */
-        font-size: 1rem;
-        border-radius: 8px;
-        border: none;
-        padding: 10px 20px;
-        margin: 10px 0;
-        transition: 0.3s ease-in-out;
-        cursor: pointer;
+            background-color: #f26640; /* Orange */
+            color: #ffffff; /* White Font */
+            font-size: 1rem;
+            border-radius: 8px;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px 0;
+            transition: 0.3s ease-in-out;
+            cursor: pointer;
         }
         .custom-button:hover {
-            background-color: #f5a51d; /* Warm Yellow */
+            background-color: #f7b632; /* Yellow */
             transform: scale(1.05);
         }
 
         /* Highlight Boxes */
         .highlight {
-            background-color: #fcfeff; /* Soft White */
-            border: 2px solid #cb503a; /* Red-Orange */
+            background-color: #5a87bb; /* Blue */
+            border: 2px solid #f26640; /* Orange */
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 15px;
-            color: #000000; /* Black Text */
+            color: #ffffff; /* White Text */
         }
 
         /* Header Styling */
@@ -85,27 +84,27 @@ def main():
             text-align: center;
             font-size: 2.5em;
             font-weight: 700;
-            color: #1a3f2c; /* Deep Blue */
+            color: #f7b632; /* Yellow */
             margin-bottom: 15px;
         }
         .divider {
             height: 2px;
-            background-color: #f5a51d; /* Warm Yellow */
+            background-color: #f26640; /* Orange */
             border: none;
             margin: 20px 0;
         }
 
         /* Input Box Styling */
         textarea, select, .stTextInput>div>input {
-            background-color: #fcfeff; /* Soft White */
-            color: #000000; /* Black Text */
-            border: 1px solid #cb503a; /* Red-Orange Border */
+            background-color: #2e3350; /* Deep Purple */
+            color: #ffffff; /* White Text */
+            border: 1px solid #f7b632; /* Yellow Border */
             border-radius: 8px;
             padding: 10px;
-            font-family: 'Helvetica', sans-serif;
+            font-family: 'Arial', sans-serif;
         }
         textarea:focus, select:focus, .stTextInput>div>input:focus {
-            border: 1px solid #f5a51d; /* Warm Yellow Focus Border */
+            border: 1px solid #f26640; /* Orange Focus Border */
             outline: none;
         }
         </style>
@@ -152,18 +151,45 @@ def display_report_emergency():
         st.markdown("<div class='highlight'>🎙️ Record your emergency report by speaking. AIERS will transcribe and process it.</div>", unsafe_allow_html=True)
         if st.button("🔴 Start Recording"):
             try:
+                # Record audio
                 audio_filename = "recorded_audio.wav"
                 st.session_state.ai.record_audio(audio_filename, duration=6)
+            
+                # Transcribe the recorded audio
                 transcript = st.session_state.ai.transcribe_audio(audio_filename)
-                process_emergency_report(transcript)
+            
+                # Identify role (dispatcher or caller)
+                role = st.session_state.ai.determine_role(transcript)
+            
+                # Display transcription
+                st.subheader("Your Speech")
+                st.text_area("Transcribed Text:", value=transcript, height=100)
+            
+                # Get LLM response based on role
+                ai_response = st.session_state.ai.get_llm_response(transcript, role)
+            
+                # Display AI response (adjust based on role)
+                st.subheader(f"AI Response for {role.capitalize()}")
+                st.write(ai_response)
+            
+                # Generate and play TTS for the identified role
+                st.session_state.ai.text_to_speech(ai_response, role)
+            
             except Exception as e:
-                st.error(f"Error in processing speech input: {e}")
+                st.error(f"Error in conversation process: {str(e)}")
 
     elif method == "Custom Text":
         st.markdown("<div class='highlight'>✏️ Type out the details of the emergency and submit them for processing.</div>", unsafe_allow_html=True)
         custom_text = st.text_area("Describe the emergency:")
-        if st.button("Submit Text"):
-            process_emergency_report(custom_text)
+        if st.button("Submit Custom Text"):
+            # Identify role based on custom text
+            role = st.session_state.ai.determine_role(custom_text)
+            ai_response = st.session_state.ai.get_llm_response(custom_text, role)
+            
+            # Display AI response
+            st.subheader(f"AI Response for {role.capitalize()}")
+            st.write(ai_response)
+            st.session_state.ai.text_to_speech(ai_response, role)
 
     elif method == "Category":
         st.markdown("<div class='highlight'>📂 Select a category and subcategory to generate an emergency report.</div>", unsafe_allow_html=True)
@@ -176,8 +202,17 @@ def display_report_emergency():
         }
         subcategory = st.selectbox("Subcategory", subcategories[category])
         predefined_text = f"This is a {subcategory.lower()} under the category of {category.lower()}. Immediate assistance is required."
-        if st.button("Submit Category Report"):
-            process_emergency_report(predefined_text)
+        if st.button("Submit Category Emergency"):
+            # Identify role for predefined category
+            role = "dispatcher"  # Always dispatcher for category-based emergencies
+            ai_response = st.session_state.ai.get_llm_response(predefined_text, role)
+                    
+            # Display AI response
+            st.subheader(f"AI Response for {role.capitalize()}")
+            st.write(ai_response)
+
+            # Generate and play TTS for the dispatcher
+            st.session_state.ai.text_to_speech(ai_response, role)
 
 # Emergency History Page
 def display_emergency_history():
