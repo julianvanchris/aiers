@@ -14,5 +14,4 @@ langchain-google-genai
 pycryptodome
 pycryptodomex
 nltk
-base64
 json
