@@ -35,6 +35,7 @@ class AIERS:
 
         # Set Google Cloud credentials
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self._temp_key_path
+        os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
 
         # Silero STT Model Setup
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
